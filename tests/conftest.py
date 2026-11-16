@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
@@ -5,7 +7,11 @@ from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 @pytest.fixture
 def browser() -> Browser:
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(channel="chrome", headless=True)
+        channel = os.getenv("PLAYWRIGHT_CHANNEL", "chrome")
+        if channel == "chromium":
+            browser = playwright.chromium.launch(headless=True)
+        else:
+            browser = playwright.chromium.launch(channel=channel, headless=True)
         try:
             yield browser
         finally:
