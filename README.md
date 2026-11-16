@@ -22,6 +22,7 @@ Codex supports the QA development workflow by helping analyze requirements, desi
 | Playwright | Browser automation through its synchronous Python API. |
 | Pytest | Test discovery, fixtures, execution, and assertions. |
 | Git and GitHub | Version control and collaborative feature workflow. |
+| GitHub Actions | Continuous integration for the full pytest suite. |
 | Codex | AI-assisted analysis, scenario development, implementation support, and review. |
 
 The pinned dependency set also includes Requests and Faker for potential shared tooling. API automation and Faker-based data generation are not currently implemented.
@@ -142,9 +143,17 @@ Alternatively, without activating the environment on macOS/Linux:
 .venv/bin/python -m pytest tests/ui/test_login.py
 ```
 
-## Latest Test Results
+## Continuous Integration
 
-The latest recorded full test run completed with **6 passed**: five login UI tests and one browser smoke test. This is a record of that run, not a guarantee that future runs will pass. Browser or public demo availability, application changes, and environment differences can affect later results.
+The [GitHub Actions workflow](.github/workflows/tests.yml) runs automatically on pushes to `main` and `feature/login-test-scenarios`, and on pull requests targeting `main`.
+
+The workflow runs on `ubuntu-latest` with Python 3.14. It installs the project dependencies from `requirements.txt`, installs Playwright Chromium and its required system dependencies, then runs the full suite with `python -m pytest`.
+
+Local development defaults to installed Google Chrome through Playwright's `channel="chrome"`. CI sets `PLAYWRIGHT_CHANNEL=chromium`, which uses Playwright-managed Chromium instead. This keeps the local Mac setup intact while allowing CI to use its installed browser dependencies.
+
+## Test Results and Project Status
+
+The initial GitHub Actions run completed successfully on `main` ([run details](https://github.com/usmanhafeez/ai-ecommerce-test-automation/actions/runs/43949743327)). The latest verified test result is **6 passed**: five login UI tests and one browser smoke test. This records the result of that run and does not guarantee future runs will pass. Browser or public demo availability, application changes, and environment differences can affect later results.
 
 ## Framework Design
 
@@ -162,5 +171,4 @@ Develop changes on a focused feature branch rather than directly on `main`. Use 
 
 - Add API automation under `tests/api/` using the existing Requests dependency.
 - Add more e-commerce scenarios, such as inventory browsing, cart operations, and checkout, after defining their requirements and expected behavior.
-- Add continuous integration with GitHub Actions to run the suite on pull requests.
-- Configure test reporting and artifact retention; no report generation pipeline is currently configured.
+- Expand CI reporting and artifact retention; no report generation pipeline is currently configured.
