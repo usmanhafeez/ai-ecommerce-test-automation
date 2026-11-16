@@ -1,103 +1,80 @@
 # SauceDemo Login Test Scenarios
 
-## Scope
+## Scope and conventions
 
-This document covers authentication and validation on the SauceDemo login page at <https://www.saucedemo.com/>. It uses the public demo accounts:
+Application: <https://www.saucedemo.com/>. This document defines login-focused manual scenarios for the public demo. Automation is expected to use Python, pytest, Playwright, and installed Google Chrome (`channel="chrome"`) per [AGENTS.md](../../AGENTS.md).
 
-| Account | Expected login behavior | Password |
-|---|---|---|
-| `standard_user` | Login succeeds | `secret_sauce` |
-| `locked_out_user` | Login is rejected as locked out | `secret_sauce` |
-| `problem_user` | Login is expected to succeed; known problems may occur in later application flows | `secret_sauce` |
-| `performance_glitch_user` | Login is expected to succeed; response may be slower | `secret_sauce` |
+Each case states its own preconditions, steps, and observable expected result. Use a fresh browser context or otherwise ensure an unauthenticated login page before each case. Do not infer behavior that is not listed as verified below. The priorities describe the recommended order for core login automation.
 
-The password is common public demo data and is included here only to make these scenarios executable by a tester. Do not reuse it for any real system.
+The public demo password is `secret_sauce`. It is public demo data, not a real credential. When scenarios are automated, follow project guidance and keep credentials out of test code by using configuration or shared test data.
 
-## Scenario conventions
+## Manually verified behavior
 
-- Start each scenario from a fresh login page/session unless a scenario explicitly tests repeated attempts or session behavior.
-- “Login page” means the SauceDemo sign-in form. “Inventory page” means the authenticated products page.
-- For rejected credentials, the expected result is that the user remains unauthenticated and no inventory page is shown.
-- Priorities reflect the impact and likelihood of a regression in this demo application's login feature.
-- Exact copy of error text, element labels, and URL paths should be confirmed against the current application before turning these scenarios into automated assertions.
+The following outcomes were supplied as manually verified and are treated as facts for this document:
 
-## Positive scenarios
+| Input | Exact observed result |
+|---|---|
+| Empty username and empty password | `Epic sadface: Username is required` |
+| Username provided and password empty | `Epic sadface: Password is required` |
+| `locked_out_user` / `secret_sauce` | `Epic sadface: Sorry, this user has been locked out.` |
+| `standard_user` / `secret_sauce` | Login succeeds at `https://www.saucedemo.com/inventory.html`; the `Swag Labs` logo, products list, and Add to cart buttons are visible. |
 
-| ID | Scenario and test data | Expected result | Priority |
-|---|---|---|---|
-| POS-01 | Sign in with `standard_user` / `secret_sauce`. | Authentication succeeds; user is taken to the inventory page and can see the product listing. | High |
-| POS-02 | Sign in with `problem_user` / `secret_sauce`. | Authentication succeeds and the user reaches the inventory page. Any known product-page defects are recorded separately and do not count as login failure. | Medium |
-| POS-03 | Sign in with `performance_glitch_user` / `secret_sauce`. | Authentication eventually succeeds and the user reaches the inventory page within the agreed response-time limit. | Medium |
-| POS-04 | Submit valid credentials using the Login control (keyboard or pointer). | The form submits once and produces the same successful outcome regardless of supported submission method. | Medium |
+## Automated behavior
 
-## Negative scenarios
+The current login UI suite passed for the cases below. Automation checks the exact errors for validation and locked-account cases. For successful login, it checks the exact inventory URL, logo visibility and text, and products-list visibility. The password-only username-required result is covered by automation; it is not listed as manually verified.
 
-| ID | Scenario and test data | Expected result | Priority |
-|---|---|---|---|
-| NEG-01 | Sign in with `locked_out_user` / `secret_sauce`. | Login is rejected with a clear locked-account message; the user stays unauthenticated. | High |
-| NEG-02 | Sign in with `standard_user` and an incorrect non-empty password. | Login is rejected with a generic invalid-credentials message; no authenticated content is accessible. | High |
-| NEG-03 | Sign in with an unknown username and `secret_sauce`. | Login is rejected with a generic invalid-credentials message; no authenticated content is accessible. | High |
-| NEG-04 | Sign in with both an unknown username and incorrect non-empty password. | Login is rejected without exposing whether the username exists. | High |
-| NEG-05 | Submit a username with the wrong letter case (for example, `STANDARD_USER`) and the valid password. | Login is rejected if usernames are case-sensitive, as expected for the published account identifiers; no session is created. | Medium |
-| NEG-06 | Submit a valid username with a password that differs by case (for example, `SECRET_SAUCE`). | Login is rejected; password matching is case-sensitive. | Medium |
-| NEG-07 | Submit username with leading/trailing spaces and otherwise valid password. | Input is handled consistently with the application's documented policy; absent an explicit trim policy, credentials should not silently authenticate as a different value. | Medium |
-| NEG-08 | Submit password with leading/trailing spaces and otherwise valid username. | Login is rejected unless whitespace normalization is an explicitly documented policy; no session is created. | Medium |
+## Core automation scope
 
-## Boundary and validation scenarios
+| ID / Priority | Preconditions | Test steps | Expected result | Status |
+|---|---|---|---|---|
+| LOGIN-01 — High | Unauthenticated session; login page is loaded. | Leave both fields empty. Submit the form. | Login is rejected and the error reads exactly `Epic sadface: Username is required`. | **Automated; manually verified** |
+| LOGIN-02 — High | Unauthenticated session; login page is loaded. | Enter a non-empty username (use `standard_user`). Leave password empty. Submit the form. | Login is rejected and the error reads exactly `Epic sadface: Password is required`. | **Automated; manually verified** |
+| LOGIN-03 — High | Unauthenticated session; login page is loaded. | Enter `locked_out_user` and `secret_sauce`. Submit the form. | Login is rejected and the error reads exactly `Epic sadface: Sorry, this user has been locked out.` The user remains at the login URL. | **Automated; message manually verified** |
+| LOGIN-04 — High | Unauthenticated session; login page is loaded. `standard_user` / `secret_sauce` is a manually verified working account. | Enter the credentials and submit the form. | URL is `https://www.saucedemo.com/inventory.html`; the `Swag Labs` logo and products list are visible. | **Automated and manually verified** |
+| LOGIN-05 — Medium | Unauthenticated session; login page is loaded. `standard_user` is assumed to exist. | Enter `standard_user` and a non-empty incorrect password. Submit the form. | Login is rejected; no authenticated inventory page is displayed. Exact error copy is not specified until verified. | **Requires manual verification** |
+| LOGIN-06 — Medium | Unauthenticated session; login page is loaded. The chosen username is assumed not to be a valid demo account. | Enter a clearly unknown username and `secret_sauce`. Submit the form. | Login is rejected; no authenticated inventory page is displayed. Exact error copy is not specified until verified. | **Requires manual verification** |
+| LOGIN-07 — Medium | Unauthenticated session; login page is loaded. The account/password pair is assumed valid. | Enter `problem_user` and `secret_sauce`. Submit the form. | Authentication succeeds and the authenticated inventory/products page is displayed. Any downstream product behavior is outside this login assertion. | **Requires manual verification** |
+| LOGIN-08 — Medium | Unauthenticated session; login page is loaded. The account/password pair is assumed valid. No response-time threshold has been defined. | Enter `performance_glitch_user` and `secret_sauce`. Submit the form. | Authentication succeeds and the authenticated inventory/products page is displayed. Do not assert a duration until a threshold and timing method are agreed. | **Requires manual verification** |
+| DEFER-01 — High | Unauthenticated session; login page is loaded. | Leave username empty; enter `secret_sauce`; submit the form. | Login is rejected and the error reads exactly `Epic sadface: Username is required`. | **Automated; behavior verified by current test run** |
 
-| ID | Scenario and test data | Expected result | Priority |
-|---|---|---|---|
-| VAL-01 | Submit both fields empty. | Login is rejected; required-field validation is displayed and no session is created. | High |
-| VAL-02 | Submit username only; leave password empty. | Login is rejected; password-required validation is displayed. | High |
-| VAL-03 | Submit password only; leave username empty. | Login is rejected; username-required validation is displayed. | High |
-| VAL-04 | Submit whitespace-only username and valid password. | Whitespace is not accepted as a valid account identifier; login is rejected with validation or generic credential feedback. | Medium |
-| VAL-05 | Submit valid username and whitespace-only password. | Whitespace is not accepted as a valid password; login is rejected. | Medium |
-| VAL-06 | Verify password input is masked while typing and after entry. | Password characters are obscured by default; they are not rendered as plain text in the field. | Medium |
-| VAL-07 | Submit values at the accepted input length boundary, if a defined limit exists, then one character below/above it. | Values within the documented limit are handled; values beyond the limit are safely rejected or constrained without layout failure or unintended authentication. | Low |
-| VAL-08 | Paste a long username/password value beyond normal credential lengths. | Page remains responsive; input and submission are handled safely, with no crash or unintended authentication. | Low |
-| VAL-09 | Submit after correcting a previous validation error with valid credentials. | The stale error clears or is replaced; valid credentials authenticate successfully. | Medium |
-| VAL-10 | Dismiss the displayed error using its close control, if present. | Error feedback is dismissed without changing authentication state; the form remains usable. | Low |
+### Initial automation order
 
-## Security-related scenarios
+LOGIN-01 through LOGIN-04 and DEFER-01 are implemented and passing in the current suite. LOGIN-05 through LOGIN-08 remain future candidates after their account outcomes and error/page assertions have been verified. Keep the `performance_glitch_user` case functional; performance measurement is out of scope until an explicit threshold is set.
 
-These checks are appropriate as bounded checks on the public demo. Do not perform high-volume guessing, denial-of-service, or intrusive security testing against the shared public service.
+## Deferred scenarios requiring requirements or manual verification
 
-| ID | Scenario and test data | Expected result | Priority |
-|---|---|---|---|
-| SEC-01 | Inspect the password field and visible page while entering a password. | Password is masked by default and is not displayed in a separate visible element. | Medium |
-| SEC-02 | Submit strings containing common markup/script payloads in username and password fields. | Inputs are treated as data; no script executes, no markup is injected, and authentication is rejected. | High |
-| SEC-03 | Submit SQL-like special-character strings in both credential fields. | Inputs do not cause an application error or authentication bypass; login is rejected safely. | High |
-| SEC-04 | Compare responses for an unknown username and a known username with a wrong password. | User-facing feedback does not reveal account existence beyond the intentionally published locked-account behavior. | Medium |
-| SEC-05 | Verify the login page is served over HTTPS and credentials are submitted over HTTPS. | Browser uses HTTPS without a downgrade to HTTP; credentials are not sent in a cleartext URL or query string. | High |
-| SEC-06 | Inspect the address bar after a failed login and after successful login. | Password and submitted credentials are not present in URL, query parameters, or fragment. | High |
-| SEC-07 | Use browser back after successful authentication, then sign out if logout is available. | Protected content follows the application's session policy; after logout, protected content is not left accessible as an authenticated page. | Medium |
-| SEC-08 | Attempt a small, manual sequence of invalid credentials, within normal demo use. | No credentials are accepted accidentally; errors remain safe and no sensitive implementation detail is exposed. Record whether throttling exists, but do not infer production-grade brute-force protection from this demo. | Low |
+These are not part of the initial automation scope. Each needs an agreed expectation or observable criterion before becoming an automated pass/fail test.
 
-## Duplicate review
+| ID | Preconditions | Test steps | Expected result to establish | Why deferred |
+|---|---|---|---|---|
+| DEFER-02: Case handling | Fresh unauthenticated login page; valid account data. | Try username with altered case, then password with altered case, in separate runs. | Confirm whether each field is case-sensitive; specify expected outcomes. | Current policy is unknown. |
+| DEFER-03: Whitespace handling | Fresh unauthenticated login page; valid account data. | Test leading/trailing spaces and whitespace-only values separately in username and password. | Confirm whether whitespace is trimmed or significant; specify expected outcomes. | Current policy is unknown. |
+| DEFER-04: Input length boundaries | Fresh unauthenticated login page; a documented length limit is available. | Submit values just below, at, and above the documented limit. | Values are accepted/rejected according to the documented limit, without unintended authentication. | No field length limit is known. |
+| DEFER-05: Correcting an error | Fresh unauthenticated login page. | Submit an invalid or incomplete form; correct it with valid credentials; submit again. | Confirm whether old error feedback clears and successful login occurs. | Error-clearing and success behavior need observation. |
+| DEFER-06: Error dismissal | Fresh unauthenticated login page; submit an input that produces an error. | Inspect for a dismissal control; if present, activate it. | Confirm control presence and that dismissing feedback leaves the form usable and unauthenticated. | Control existence and effect are unknown. |
+| DEFER-07: Keyboard submission | Fresh unauthenticated login page; valid account data. | Fill both fields and submit using the keyboard. | Confirm keyboard submission is supported and results in the same authenticated state as pointer submission. | Key behavior and accessible form semantics need verification. |
+| DEFER-08: Credential URL exposure / HTTPS | Login page loaded. | Observe initial URL and navigation/request URLs during both failed and successful submission. | Confirm HTTPS behavior and that credentials do not appear in URL, query, or fragment. | Requires browser/network inspection; no current observation supplied. |
+| DEFER-09: Injection-oriented inputs | Fresh unauthenticated login page. | Submit a small, reviewed set of special-character or markup-like values. | Define specific observable checks for no script execution, unexpected markup, or authentication. | UI checks cannot establish broad injection security; scope and assertions need security review. |
+| DEFER-10: Session and protected routes | Session/login behavior requirements defined. | Attempt direct inventory access unauthenticated; separately test refresh/back/logout behavior after login. | Specify redirect/denial and session invalidation behavior. | These are session-management scenarios, and expected policy is unknown. |
+| DEFER-11: Performance | Agree threshold, environment, and timing boundaries. | Log in with `performance_glitch_user` and measure the defined interval. | Login completes within the approved threshold under the agreed conditions. | No threshold or measurement method exists. |
 
-Scenarios were checked for overlapping intent. Empty-field checks (VAL-01–VAL-03) are separated by which required value is missing. Invalid username, invalid password, and invalid-both checks (NEG-02–NEG-04) distinguish credential combinations and include account-enumeration feedback in the combined case. Whitespace-only inputs (VAL-04–VAL-05) are distinct from padding a valid credential (NEG-07–NEG-08). Password masking (VAL-06 and SEC-01) appears in both sections because one is a UI validation check and the other states its security purpose; they are the same underlying check and should be implemented once with both tags if this document is converted into a test suite. No other exact duplicate scenario was identified.
+## Duplicate and scope review
 
-## Assumptions and limitations
+- The previous password-masking cases in validation and security sections were duplicates; neither is retained in the core login suite. Add a single UI/security check later if required.
+- The previous unknown-user plus wrong-password case duplicated the separate invalid-password and unknown-user cases for ordinary functional coverage. It is omitted. If account-enumeration checking is required, compare the user-facing outcomes of LOGIN-05 and LOGIN-06 as one separately scoped security assessment.
+- The prior URL credential check and HTTPS check overlapped; they are consolidated into DEFER-08.
+- The prior markup and SQL-like input cases were broad and did not prove security properties. They are replaced with one explicitly limited, deferred injection-input assessment (DEFER-09).
+- The previous mixed back/logout case combined separate session behaviors; these are grouped as future session-management work in DEFER-10 and require distinct cases when specified.
+- Pointer and keyboard submission are not asserted as one combined behavior. Keyboard submission is a separate deferred case; the pointer path is used in the core cases.
+- No arbitrary maximum-length or long-input boundary is claimed. DEFER-04 requires an actual product limit.
 
-1. The supplied four account names are valid public demo accounts, and `secret_sauce` is their shared password, as listed by SauceDemo's public training materials and login-page guidance.
-2. `standard_user` authenticates successfully; `locked_out_user` is rejected as locked out. `problem_user` and `performance_glitch_user` are treated as accounts expected to authenticate; their names refer to issues that may affect later behavior or response time.
-3. Username and password matching are assumed case-sensitive. Confirm this against the current application before treating it as a requirement.
-4. Whitespace is not assumed to be normalized. The expected behavior should be explicitly agreed if trimming is desired.
-5. No maximum input lengths or detailed validation rules were supplied. VAL-07 is conditional on confirming a product limit; no arbitrary exact length is asserted.
-6. A response-time threshold for `performance_glitch_user` was not supplied. Agree a limit and measurement method before making POS-03 a strict pass/fail check.
-7. Current exact field labels, error copy, routing, and error-dismiss behavior were not verified live during document preparation. Confirm these before automation.
-8. SauceDemo is a shared training application with publicly known credentials. Lockout, rate-limit, account-enumeration, and session-control checks here are observations of demo behavior, not assurance of production security controls.
+## Locator guidance for later Playwright work
 
-## Additional scenarios recommended
+The live DOM inspection confirmed label-based username/password locators, a role/name Login button, and an alert error locator. The inventory logo is the exact text `Swag Labs`; the products list uses `[data-test="inventory-list"]`. The Add to cart role/name locator matched six buttons. For successful login, the automated test asserts the verified inventory URL, visible logo, and visible products list. Avoid generated CSS classes and positional selectors.
 
-- **Session persistence and logout:** Verify whether a successful session survives refresh or a new tab as intended, and verify logout invalidates access. This extends login into session lifecycle coverage.
-- **Direct protected-page access:** Open the inventory route without logging in and verify the application redirects or otherwise denies access.
-- **Accessibility and usability:** Check labels and accessible names, keyboard-only operation, focus order, visible focus, error announcement to assistive technology, and zoom/reflow.
-- **Cross-browser and responsive behavior:** Confirm login on the supported browser/device matrix and at narrow viewport sizes.
-- **Operational resilience:** Define acceptable latency for all accounts and assess behavior during a transient network failure, without sending load to the public demo.
-- **Credential transport and session cookie review:** Where browser developer tools or an approved proxy are available, review secure transport and cookie flags. Treat findings as observations because the demo does not define production security requirements.
+## Remaining assumptions
 
-## Reference
-
-- Sauce Labs training material depicting the SauceDemo login and published accounts: <https://saucelabs-training.github.io/slides.pdf>
-- Application under test: <https://www.saucedemo.com/>
+1. `problem_user` and `performance_glitch_user` with `secret_sauce` are assumed to authenticate; they are not covered by the current automated tests.
+2. Invalid and unknown credential data for LOGIN-05/06 will be selected and checked before automation.
+3. Case sensitivity, whitespace normalization, input limits, keyboard submission, error dismissal, HTTPS/session behavior, and performance expectations remain unknown as listed in deferred cases.
+4. The browser automation target is installed Google Chrome through Playwright `channel="chrome"`, per project instructions.
