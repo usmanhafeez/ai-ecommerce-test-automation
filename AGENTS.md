@@ -9,9 +9,9 @@ Help develop and maintain a reliable Python test automation framework.
 - Python
 - Playwright
 - Pytest
-- Requests
-- Faker
+- pytest-html
 - Git and GitHub
+- Codex CLI for optional local AI-assisted failure analysis
 
 ## Project Architecture
 - tests/ui: UI automation tests
