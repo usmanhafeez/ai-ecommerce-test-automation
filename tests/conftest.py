@@ -44,6 +44,27 @@ def pytest_html_results_summary(prefix: list[str], summary: list[str], postfix: 
     )
 
 
+def pytest_html_results_table_header(cells: list[str]) -> None:
+    cells.insert(1, '<th class="sortable" data-column-type="suite">Suite</th>')
+
+
+def pytest_html_results_table_row(report: pytest.TestReport, cells: list[str]) -> None:
+    suite = _test_suite_label(report.nodeid)
+    cells.insert(1, f'<td class="col-suite">{suite}</td>')
+
+
+def _test_suite_label(nodeid: str) -> str:
+    if nodeid.startswith("tests/ui/"):
+        return "UI"
+    if nodeid.startswith("tests/unit/"):
+        return "Unit"
+    if nodeid.startswith("tests/demos/"):
+        return "Demo"
+    if nodeid.startswith("tests/api/"):
+        return "API"
+    return "Other"
+
+
 @pytest.fixture
 def browser() -> Browser:
     with sync_playwright() as playwright:
