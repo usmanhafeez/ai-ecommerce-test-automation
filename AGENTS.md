@@ -17,7 +17,7 @@ Help develop and maintain a reliable Python test automation framework.
 - tests/ui: UI automation tests
 - tests/api: API automation tests
 - pages: Page Object Model classes
-- test_data: Reusable test data factories
+- test_data: Reusable module-level test data constants
 - utils: Shared utilities and fixtures
 - reports: Test execution reports
 

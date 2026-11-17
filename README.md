@@ -229,4 +229,4 @@ Develop changes on a focused feature branch rather than directly on `main`. Use 
 
 - Add API automation under `tests/api/`, selecting and pinning an HTTP client dependency if the implementation requires one.
 - Add more e-commerce scenarios, such as inventory browsing, cart operations, and checkout, after defining their requirements and expected behavior.
-- Expand CI reporting and artifact retention; no report generation pipeline is currently configured.
+- Retain CI reports as workflow artifacts. Pytest-html generates `reports/pytest-report.html`, but GitHub Actions does not currently upload or retain it as an artifact.
