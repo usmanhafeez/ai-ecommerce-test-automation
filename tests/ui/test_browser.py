@@ -1,16 +1,7 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Page
 
 
-def test_chrome_launch():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            channel="chrome",
-            headless=True
-        )
+def test_configured_browser_can_navigate(page: Page) -> None:
+    page.goto("https://example.com")
 
-        page = browser.new_page()
-        page.goto("https://example.com")
-
-        assert page.title() == "Example Domain"
-
-        browser.close()
+    assert page.title() == "Example Domain"

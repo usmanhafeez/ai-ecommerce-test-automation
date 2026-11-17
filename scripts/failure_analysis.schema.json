@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "failure_type",
+    "likely_root_cause",
+    "evidence",
+    "recommended_fix",
+    "regression_tests",
+    "confidence"
+  ],
+  "properties": {
+    "failure_type": {
+      "type": "string",
+      "enum": [
+        "application bug",
+        "test bug",
+        "locator issue",
+        "environment issue",
+        "test data issue",
+        "flaky test"
+      ]
+    },
+    "likely_root_cause": { "type": "string" },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "recommended_fix": { "type": "string" },
+    "regression_tests": { "type": "array", "items": { "type": "string" } },
+    "confidence": { "type": "string", "enum": ["High", "Medium", "Low"] }
+  }
+}
